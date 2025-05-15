@@ -26,8 +26,8 @@ func (s *server) Get(ctx context.Context, req *pb.GetUserRequest) (*pb.GetUserRe
 	fmt.Printf("GetUser: %+v\n", req)
 	return &pb.GetUserResponse{
 		Id:        req.Id,
-		Name:      "Victor Sidoruk",
-		Email:     "n1cedek@gmail.com",
+		Name:      "stawwkom",
+		Email:     "stawwkom@gmail.com",
 		Role:      pb.Role_USER,
 		CreatedAt: timestamppb.Now(),
 		UpdatedAt: timestamppb.Now(),

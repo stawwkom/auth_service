@@ -4,21 +4,7 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e5ed69a4-479f-4580-bbbe-4d299c9cf381" name="Changes" comment="add steps pre unit-test">
-      <change afterPath="$PROJECT_DIR$/internal/repository/generate.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/service/generate.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/configs/local.env" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/configs/production.env" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/configs/staging.env" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/config/parser.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/handler/handler.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/repository/postgres.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/repository/repository.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/service/service.go" beforeDir="false" />
-    </list>
+    <list default="true" id="e5ed69a4-479f-4580-bbbe-4d299c9cf381" name="Changes" comment="add steps pre unit-test" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
