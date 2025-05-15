@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/stawwkom/auth_service/internal/config"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"log"
 	"net"
@@ -45,7 +46,18 @@ func (s *server) Delete(ctx context.Context, req *pb.DeleteUserRequest) (*emptyp
 }
 
 func main() {
-	lis, err := net.Listen("tcp", ":50051")
+	// Загружаем конфигурацию (dev.yaml + .env + переменные окружения)
+	if err := config.Load(); err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
+
+	// Получаем конфигурацию из глобальной переменной
+	cfg := config.Cfg
+
+	// Формируем адрес для запуска gRPC сервера: "host:port"
+	address := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
+
+	lis, err := net.Listen("tcp", address)
 	if err != nil {
 		log.Fatalf("Ошибка запуска: %v", err)
 	}
@@ -56,7 +68,7 @@ func main() {
 
 	pb.RegisterUserAPIServer(s, &server{})
 
-	log.Println("gRPC сервер запущен на :50051")
+	log.Printf("gRPC сервер запущен на %v (уровень логирования: %v)", address, cfg.Log)
 
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)

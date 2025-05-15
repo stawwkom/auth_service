@@ -1,0 +1,16 @@
+server:
+  host: "localhost"
+  port: 50052
+log:
+  level: "info"
+
+#database:
+#  host: "localhost"
+#  port: 5432
+#  user: "dbuser"
+#  password: "dbpass"
+#  dbname: "mydb"
+#  sslmode: "disable"  # или "require"
+#  max_open_conns: 10
+#  max_idle_conns: 5
+#  conn_max_lifetime: 300s
