@@ -30,10 +30,10 @@ func Load() error {
 	// Определяем текущую среду (например, dev, prod, staging) из переменной окружения APP_ENV
 	env := os.Getenv("APP_ENV")
 	if env == "" {
-		env = "dev" // Если не задана, используем "dev" по умолчанию
+		env = "local" // Если не задана, используем "local" по умолчанию
 	}
 
-	// Настраиваем viper для чтения файла конфигурации с именем среды (например, dev.yaml)
+	// Настраиваем viper для чтения файла конфигурации с именем среды (например, local.yaml)
 	viper.SetConfigName(env)
 	viper.SetConfigType("yaml")          // по типу конфига и считаного env установливаем конфиг
 	viper.AddConfigPath("../../configs") // Папка, где хранятся конфиги

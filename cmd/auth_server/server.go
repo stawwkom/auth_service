@@ -46,7 +46,7 @@ func (s *server) Delete(ctx context.Context, req *pb.DeleteUserRequest) (*emptyp
 }
 
 func main() {
-	// Загружаем конфигурацию (dev.yaml + .env + переменные окружения)
+	// Загружаем конфигурацию (local.yaml + .env + переменные окружения)
 	if err := config.Load(); err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}

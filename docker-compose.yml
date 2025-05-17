@@ -1,0 +1,30 @@
+# version: '3.8' syntax version
+
+volumes:
+  postgres_volume_local:
+  postgres_volume_prod:
+
+services: # перечисление используемых сервисов
+  postgres-local: # название сервиса и ниже его описание
+    image: postgres:15-alpine3.17
+    restart: no
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password
+    ports:
+      - "54321:5432"
+    volumes:
+      - postgres_volume_local:/var/lib/postgresql/data
+
+  postgres-prod: # название сервиса и ниже его описание
+    image: postgres:15-alpine3.17
+    restart: always
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password
+    ports:
+      - "54322:5432"
+    volumes:
+      - postgres_volume_prod:/var/lib/postgresql/data
