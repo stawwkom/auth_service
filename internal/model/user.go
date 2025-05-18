@@ -1,15 +1,21 @@
 package model
 
 import (
-	"database/sql"
 	"time"
 )
 
+// User для внутреннего использования
 type User struct {
-	ID           int
-	Login        string
-	Email        string
-	PasswordHash string
-	CreatedAt    time.Time
-	UpdateAt     sql.NullTime
+	ID        int
+	Login     string
+	Email     string
+	Password  string
+	CreatedAt time.Time
+	UpdatedAt *time.Time
+}
+
+// UserInfo для публичного использования
+type UserInfo struct {
+	Login string
+	Email string
 }

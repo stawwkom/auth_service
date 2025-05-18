@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/stawwkom/auth_service/internal/config"
+	"github.com/stawwkom/auth_service/internal/service"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"log"
 	"net"
@@ -16,6 +17,7 @@ import (
 
 type server struct {
 	pb.UnimplementedUserAPIServer
+	authService service.AuthService
 }
 
 func (s *server) Create(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
