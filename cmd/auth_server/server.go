@@ -3,16 +3,17 @@ package main
 import (
 	"context"
 	"fmt"
+	api "github.com/stawwkom/auth_service/internal/api/auth"
 	"github.com/stawwkom/auth_service/internal/config"
+	"github.com/stawwkom/auth_service/internal/repository"
+	repo "github.com/stawwkom/auth_service/internal/repository/auth"
 	"github.com/stawwkom/auth_service/internal/service"
-	"google.golang.org/protobuf/types/known/emptypb"
+	serv "github.com/stawwkom/auth_service/internal/service/auth"
 	"log"
 	"net"
 
+	pb "github.com/stawwkom/auth_service/pkg/auth_v1"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/timestamppb"
-
-	pb "github.com/VictorSidoruk/auth/pkg"
 )
 
 type server struct {
@@ -20,34 +21,11 @@ type server struct {
 	authService service.AuthService
 }
 
-func (s *server) Create(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
-	fmt.Printf("CreateUser: %+v\n", req)
-	return &pb.CreateUserResponse{Id: 1}, nil
-}
-
-func (s *server) Get(ctx context.Context, req *pb.GetUserRequest) (*pb.GetUserResponse, error) {
-	fmt.Printf("GetUser: %+v\n", req)
-	return &pb.GetUserResponse{
-		Id:        req.Id,
-		Name:      "stawwkom",
-		Email:     "stawwkom@gmail.com",
-		Role:      pb.Role_USER,
-		CreatedAt: timestamppb.Now(),
-		UpdatedAt: timestamppb.Now(),
-	}, nil
-}
-
-func (s *server) Update(ctx context.Context, req *pb.UpdateUserRequest) (*emptypb.Empty, error) {
-	fmt.Printf("UpdateUser: %+v\n", req)
-	return &emptypb.Empty{}, nil
-}
-
-func (s *server) Delete(ctx context.Context, req *pb.DeleteUserRequest) (*emptypb.Empty, error) {
-	fmt.Printf("DeleteUser: %+v\n", req)
-	return &emptypb.Empty{}, nil
-}
-
 func main() {
+	// Создаем контекст с возможностью отмены
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Загружаем конфигурацию (local.yaml + .env + переменные окружения)
 	if err := config.Load(); err != nil {
 		log.Fatalf("Failed to load config: %v", err)
@@ -56,6 +34,19 @@ func main() {
 	// Получаем конфигурацию из глобальной переменной
 	cfg := config.Cfg
 
+	// Инициализируем подключение к базе данных
+	db, err := repository.NewPostgresDB(ctx, cfg)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer db.Close()
+
+	// Инициализируем репозиторий
+	authRepo := repo.NewRepository(db)
+
+	// Инициализируем сервис
+	authService := serv.NewAuthService(authRepo)
+
 	// Формируем адрес для запуска gRPC сервера: "host:port"
 	address := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 
@@ -63,12 +54,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Ошибка запуска: %v", err)
 	}
+
 	// Создаем наш gRPC server
 	s := grpc.NewServer()
 
 	// Регистрируем gRPC
-
-	pb.RegisterUserAPIServer(s, &server{})
+	pb.RegisterUserAPIServer(s, api.NewServer(authService))
 
 	log.Printf("gRPC сервер запущен на %v (уровень логирования: %v)", address, cfg.Log)
 

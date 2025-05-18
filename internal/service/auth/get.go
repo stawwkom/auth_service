@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+
 	"github.com/stawwkom/auth_service/internal/model"
 	"golang.org/x/crypto/bcrypt"
 )
