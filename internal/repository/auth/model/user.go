@@ -7,7 +7,7 @@ import (
 
 // User для внутреннего использования определяет структуру БД
 type User struct {
-	ID        int
+	ID        int64
 	Login     string
 	Email     string
 	Password  string

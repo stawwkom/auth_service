@@ -92,7 +92,7 @@ func (r *repo) Get(ctx context.Context, id int64) (*model.UserInfo, error) {
 }
 
 // GetByLogin возвращает полную информацию по логину (используется при логине)
-func (r *repo) GetByLogin(ctx context.Context, login string) (*model.UserInfo, error) {
+func (r *repo) GetByLogin(ctx context.Context, login string) (*model.User, error) {
 	builder := sq.Select(idColumn, loginColumn, emailColumn, passwordColumn, createdAtColumn, updatedAtColumn).
 		PlaceholderFormat(sq.Dollar).
 		From(tableName).
@@ -119,7 +119,7 @@ func (r *repo) GetByLogin(ctx context.Context, login string) (*model.UserInfo, e
 	}
 
 	// Конвертируем в доменную модель
-	return converter.ToAuthInfoFromRepo(&user), nil
+	return converter.ToAuthFromRepo(&user), nil
 }
 
 // Обновление данных пользователя по ID

@@ -8,7 +8,7 @@ import (
 type AuthRepository interface {
 	Create(ctx context.Context, info *model.User) (int64, error)
 	Get(ctx context.Context, id int64) (*model.UserInfo, error)
-	GetByLogin(ctx context.Context, login string) (*model.UserInfo, error)
+	GetByLogin(ctx context.Context, login string) (*model.User, error)
 	Update(ctx context.Context, id int64, info *model.User) error
 	Delete(ctx context.Context, id int64) error
 }
