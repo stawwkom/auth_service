@@ -9,6 +9,7 @@ import (
 	repo "github.com/stawwkom/auth_service/internal/repository/auth"
 	"github.com/stawwkom/auth_service/internal/service"
 	serv "github.com/stawwkom/auth_service/internal/service/auth"
+	"google.golang.org/grpc/reflection"
 	"log"
 	"net"
 
@@ -58,6 +59,7 @@ func main() {
 	// Создаем наш gRPC server
 	s := grpc.NewServer()
 
+	reflection.Register(s)
 	// Регистрируем gRPC
 	pb.RegisterUserAPIServer(s, api.NewServer(authService))
 
