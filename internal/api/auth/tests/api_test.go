@@ -2,11 +2,9 @@ package tests
 
 import (
 	"context"
-	"github.com/stretchr/testify/mock"
 	"testing"
 
 	"github.com/stawwkom/auth_service/internal/api/auth"
-	"github.com/stawwkom/auth_service/internal/converter"
 	"github.com/stawwkom/auth_service/internal/model"
 	"github.com/stawwkom/auth_service/internal/service/mocks"
 	desc "github.com/stawwkom/auth_service/pkg/auth_v1"
@@ -28,12 +26,12 @@ func TestCreate(t *testing.T) {
 	}
 
 	expectedID := int64(1)
-	mockService.RegisterMock.When(context.Background(), mock.MatchedBy(func(user *model.User) bool {
-		return user.Login == req.Name &&
-			user.Email == req.Email &&
-			user.Password == req.Password &&
-			user.Role == int(req.Role)
-	})).Then(expectedID, nil)
+	mockService.RegisterMock.When(context.Background(), &model.User{
+		Login:    req.Name,
+		Email:    req.Email,
+		Password: req.Password,
+		Role:     int(req.Role),
+	}).Then(expectedID, nil)
 
 	// Act
 	resp, err := server.Create(context.Background(), req)
@@ -58,7 +56,9 @@ func TestCreate_Error(t *testing.T) {
 		Role:            desc.Role_USER,
 	}
 
-	mockService.RegisterMock.When(context.Background(), mock.Anything).Then(int64(0), assert.AnError)
+	mockService.RegisterMock.Set(func(ctx context.Context, user *model.User) (int64, error) {
+		return 0, assert.AnError
+	})
 
 	// Act
 	resp, err := server.Create(context.Background(), req)

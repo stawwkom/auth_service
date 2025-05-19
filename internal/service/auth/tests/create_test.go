@@ -2,7 +2,7 @@ package tests
 
 import (
 	"context"
-	"github.com/stretchr/testify/mock"
+	"errors"
 	"testing"
 
 	"github.com/stawwkom/auth_service/internal/model"
@@ -26,11 +26,18 @@ func TestRegister(t *testing.T) {
 	}
 
 	expectedID := int64(1)
-	mockRepo.CreateMock.When(context.Background(), mock.MatchedBy(func(u *model.User) bool {
-		// Проверяем, что пароль был захеширован
-		err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(user.Password))
-		return err == nil && u.Login == user.Login && u.Email == user.Email && u.Role == user.Role
-	})).Then(expectedID, nil)
+	mockRepo.CreateMock.Set(func(ctx context.Context, u *model.User) (int64, error) {
+		// Проверяем, что пароль захеширован
+		if bcrypt.CompareHashAndPassword([]byte(u.Password), []byte("password123")) != nil {
+			return 0, errors.New("password not properly hashed")
+		}
+
+		if u.Login == "test_user" && u.Email == "test@example.com" && u.Role == 0 {
+			return expectedID, nil
+		}
+
+		return 0, errors.New("unexpected user data")
+	})
 
 	// Act
 	id, err := service.Register(context.Background(), user)
@@ -53,7 +60,9 @@ func TestRegister_Error(t *testing.T) {
 		Role:     0,
 	}
 
-	mockRepo.CreateMock.When(context.Background(), mock.Anything).Then(int64(0), assert.AnError)
+	mockRepo.CreateMock.Set(func(ctx context.Context, u *model.User) (int64, error) {
+		return 0, assert.AnError
+	})
 
 	// Act
 	id, err := service.Register(context.Background(), user)

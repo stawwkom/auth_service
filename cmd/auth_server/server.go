@@ -2,70 +2,35 @@ package main
 
 import (
 	"context"
-	"fmt"
-	api "github.com/stawwkom/auth_service/internal/api/auth"
-	"github.com/stawwkom/auth_service/internal/config"
-	"github.com/stawwkom/auth_service/internal/repository"
-	repo "github.com/stawwkom/auth_service/internal/repository/auth"
-	"github.com/stawwkom/auth_service/internal/service"
-	serv "github.com/stawwkom/auth_service/internal/service/auth"
-	"google.golang.org/grpc/reflection"
 	"log"
-	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
-	pb "github.com/stawwkom/auth_service/pkg/auth_v1"
-	"google.golang.org/grpc"
+	"github.com/stawwkom/auth_service/internal/app"
 )
 
-type server struct {
-	pb.UnimplementedUserAPIServer
-	authService service.AuthService
-}
-
 func main() {
-	// Создаем контекст с возможностью отмены
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Загружаем конфигурацию (local.yaml + .env + переменные окружения)
-	if err := config.Load(); err != nil {
-		log.Fatalf("Failed to load config: %v", err)
-	}
-
-	// Получаем конфигурацию из глобальной переменной
-	cfg := config.Cfg
-
-	// Инициализируем подключение к базе данных
-	db, err := repository.NewPostgresDB(ctx, cfg)
+	a, err := app.NewApp(ctx)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("failed to init app: %v", err)
 	}
-	defer db.Close()
+	defer a.Close() // ✅ Закрытие ресурсов после завершения
 
-	// Инициализируем репозиторий
-	authRepo := repo.NewRepository(db)
+	// Обработка SIGINT / SIGTERM
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+		<-c
+		log.Println("⛔️ Signal received, shutting down gracefully...")
+		cancel()
+	}()
 
-	// Инициализируем сервис
-	authService := serv.NewAuthService(authRepo)
-
-	// Формируем адрес для запуска gRPC сервера: "host:port"
-	address := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
-
-	lis, err := net.Listen("tcp", address)
-	if err != nil {
-		log.Fatalf("Ошибка запуска: %v", err)
+	if err := a.Run(ctx); err != nil {
+		log.Fatalf("failed to run server: %v", err)
 	}
 
-	// Создаем наш gRPC server
-	s := grpc.NewServer()
-
-	reflection.Register(s)
-	// Регистрируем gRPC
-	pb.RegisterUserAPIServer(s, api.NewServer(authService))
-
-	log.Printf("gRPC сервер запущен на %v (уровень логирования: %v)", address, cfg.Log)
-
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	}
 }

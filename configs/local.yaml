@@ -5,7 +5,7 @@ log:
   level: "debug"
 database:
   host: "localhost"
-  port: 54322  # Используем из .env
+  port: "54321"  # Используем из .env
   user: "auth_user"
   password: "auth_password"
   dbname: "auth_db"

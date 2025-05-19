@@ -1,5 +1,5 @@
+export
 include .env
-export $(shell sed 's/=.*//' .env)
 
 LOCAL_BIN := $(CURDIR)/bin
 
@@ -9,8 +9,8 @@ LOCAL_MIGRATION_DSN="host=localhost port=$(PG_PORT) dbname=$(PG_DATABASE_NAME) u
 PROTOC_GEN_GO := $(LOCAL_BIN)/protoc-gen-go
 PROTOC_GEN_GO_GRPC := $(LOCAL_BIN)/protoc-gen-go-grpc
 
-PROTO_DIR := api/
-OUT_DIR := pkg/
+PROTO_DIR := api/auth_gateway
+OUT_DIR := pkg/auth_gateway
 PROTO_FILE := $(PROTO_DIR)/auth.proto
 
 # Установка инструментов в локальную папку
@@ -22,14 +22,22 @@ install-deps:
 	GOBIN=$(LOCAL_BIN) go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.20.0
 
 # Генерация gRPC и Go-кода
+# Генерация gRPC и Go-кода
 generate:
 	mkdir -p $(OUT_DIR)
-	protoc --proto_path=$(PROTO_DIR) \
+	protoc \
+		--proto_path=$(PROTO_DIR) \
+		--proto_path=vendor.protogen \
+		--proto_path=vendor.protogen/validate \
 		--plugin=protoc-gen-go=$(PROTOC_GEN_GO) \
 		--plugin=protoc-gen-go-grpc=$(PROTOC_GEN_GO_GRPC) \
+		--plugin=protoc-gen-grpc-gateway=$(LOCAL_BIN)/protoc-gen-grpc-gateway \
 		--go_out=$(OUT_DIR) --go_opt=paths=source_relative \
 		--go-grpc_out=$(OUT_DIR) --go-grpc_opt=paths=source_relative \
+		--grpc-gateway_out=$(OUT_DIR) --grpc-gateway_opt=paths=source_relative \
 		$(PROTO_FILE)
+
+
 
 local-migration-status:
 	${LOCAL_BIN}/goose -dir ${LOCAL_MIGRATION_DIR} postgres ${LOCAL_MIGRATION_DSN} status -v
@@ -40,3 +48,33 @@ local-migration-up:
 local-migration-down:
 	${LOCAL_BIN}/goose -dir ${LOCAL_MIGRATION_DIR} postgres ${LOCAL_MIGRATION_DSN} down -v
 
+test:
+	go clean -testcache
+	go test ./internal/service/auth/tests ./internal/api/auth/tests \
+		-covermode=count \
+		-coverpkg=github.com/stawwkom/auth_service/internal/service/auth,github.com/stawwkom/auth_service/internal/api/auth \
+		-coverprofile=cover.out \
+		-v
+
+test-coverage:
+	go clean -testcache
+	go test ./... -coverprofile=coverage.tmp.out -covermode count -coverpkg=github.com/stawwkom/auth_service/internal/service/auth, github.com/stawwkom/auth_service/internal/api/auth -count 5
+	grep -v 'mocks\|config' coverage.tmp.out > coverage.out
+	rm coverage.tmp.out
+	go tool cover -html=coverage.out;
+	go tool cover -func=./coverage.out | grep "total";
+	grep -sqFx "/coverage.out" .gitignore || echo "/coverage.out" >> .gitignore
+
+vendor-proto:
+		@if [ ! -d vendor.protogen/validate ]; then \
+			mkdir -p vendor.protogen/validate &&\
+			git clone https://github.com/envoyproxy/protoc-gen-validate vendor.protogen/protoc-gen-validate &&\
+			mv vendor.protogen/protoc-gen-validate/validate/*.proto vendor.protogen/validate &&\
+			rm -rf vendor.protogen/protoc-gen-validate ;\
+		fi
+		@if [ ! -d vendor.protogen/google ]; then \
+        			git clone https://github.com/googleapis/googleapis vendor.protogen/googleapis &&\
+        			mkdir -p  vendor.protogen/google/ &&\
+        			mv vendor.protogen/googleapis/google/api vendor.protogen/google &&\
+        			rm -rf vendor.protogen/googleapis ;\
+        		fi
