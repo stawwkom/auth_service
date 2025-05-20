@@ -31,6 +31,7 @@ func ToModelUser(req *desc.CreateUserRequest) *model.User {
 
 func ToProtoUserInfo(u *model.UserInfo) *desc.GetUserResponse {
 	return &desc.GetUserResponse{
+		Id:    u.ID,
 		Name:  u.Login,
 		Email: u.Email,
 		// Остальные поля (id, role, timestamps) оставить пустыми или не заполнять

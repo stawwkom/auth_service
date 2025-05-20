@@ -17,6 +17,7 @@ type User struct {
 
 // UserInfo для публичного использования
 type UserInfo struct {
+	ID    int64
 	Login string
 	Email string
 }

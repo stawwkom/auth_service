@@ -44,6 +44,7 @@ func ToRepoFromAuth(auth *model.User) *modelRepo.User {
 func ToAuthInfoFromRepo(user *modelRepo.User) *model.UserInfo {
 
 	return &model.UserInfo{
+		ID:    user.ID,
 		Login: user.Login,
 		Email: user.Email,
 	}
