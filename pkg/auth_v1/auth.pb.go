@@ -4,7 +4,7 @@
 // 	protoc        v3.12.4
 // source: auth.proto
 
-package auth_v1
+package auth
 
 import (
 	empty "github.com/golang/protobuf/ptypes/empty"

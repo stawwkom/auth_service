@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
-	"github.com/stawwkom/auth_service/pkg/auth_v1"
+	"fmt"
+	"github.com/stawwkom/auth_service/internal/interceptor"
+	desc "github.com/stawwkom/auth_service/pkg/auth_v1"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"net"
@@ -112,7 +114,7 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 	mux := runtimes.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 
-	if err := auth_v1.RegisterUserAPIHandlerFromEndpoint(
+	if err := desc.RegisterUserAPIHandlerFromEndpoint(
 		ctx, mux, a.serviceProvider.GRPCAddr(), opts,
 	); err != nil {
 		return err
@@ -163,10 +165,14 @@ func (a *App) CloseHTTP() {
 //}
 
 func (a *App) initGRPCServer(_ context.Context) error {
-	a.grpcServer = grpc.NewServer()
+	a.grpcServer = grpc.NewServer(
+		grpc.Creds(insecure.NewCredentials()),
+		grpc.UnaryInterceptor(interceptor.ValidateInterceptor),
+	)
+	fmt.Println("Validate running")
 	reflection.Register(a.grpcServer)
 
-	auth_v1.RegisterUserAPIServer(a.grpcServer, api.NewServer(a.serviceProvider.authService))
+	desc.RegisterUserAPIServer(a.grpcServer, api.NewServer(a.serviceProvider.authService))
 
 	return nil
 }

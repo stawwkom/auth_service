@@ -10,7 +10,7 @@ PROTOC_GEN_GO := $(LOCAL_BIN)/protoc-gen-go
 PROTOC_GEN_GO_GRPC := $(LOCAL_BIN)/protoc-gen-go-grpc
 
 PROTO_DIR := api/auth_gateway
-OUT_DIR := pkg/auth_gateway
+OUT_DIR := pkg/auth_v1
 PROTO_FILE := $(PROTO_DIR)/auth.proto
 
 # Установка инструментов в локальную папку

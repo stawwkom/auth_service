@@ -7,7 +7,7 @@ option go_package = "github.com/stawwkom/auth_service/pkg/auth_v1;auth";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
-import "validate/validate.proto";
+import "validate/validate.proto"; // Импортируем proto-валидацию
 
 service UserAPI {
   rpc Create(CreateUserRequest) returns (CreateUserResponse);
@@ -16,29 +16,42 @@ service UserAPI {
   rpc Delete(DeleteUserRequest) returns (google.protobuf.Empty);
 }
 
-// Enum for role
-
+// Роли пользователя
 enum Role {
   USER = 0;
   ADMIN = 1;
 }
 
+// Создание пользователя с валидацией
 message CreateUserRequest {
-  string name = 1;
-  string email = 2;
-  string password = 3;
-  string password_confirm = 4;
-  Role role = 5;
+  // Имя должно быть от 2 до 50 символов
+  string name = 1 [(validate.rules).string = {min_len: 2, max_len: 50}];
+
+  // Email должен быть корректного формата
+  string email = 2 [(validate.rules).string = {email: true}];
+
+  // Пароль не короче 6 символов
+  string password = 3 [(validate.rules).string = {min_len: 6}];
+
+  // Подтверждение пароля — такое же правило
+  string password_confirm = 4 [(validate.rules).string = {min_len: 6}];
+
+  // Enum должен быть строго из списка (USER или ADMIN)
+  Role role = 5 [(validate.rules).enum = {defined_only: true}];
 }
 
+// Ответ с ID после создания
 message CreateUserResponse {
   int64 id = 1;
 }
 
+// Получение пользователя по ID
 message GetUserRequest {
-  int64 id = 1;
+  // ID должен быть > 0
+  int64 id = 1 [(validate.rules).int64 = {gt: 0}];
 }
 
+// Ответ с полной информацией о пользователе
 message GetUserResponse {
   int64 id = 1;
   string name = 2;
@@ -48,19 +61,44 @@ message GetUserResponse {
   google.protobuf.Timestamp updated_at = 6;
 }
 
+// Обновление пользователя
 message UpdateUserRequest {
-  int64 id = 1;
-  google.protobuf.StringValue name = 2;
-  google.protobuf.StringValue email = 3;
+  // ID > 0
+  int64 id = 1 [(validate.rules).int64 = {gt: 0}];
+
+  // Имя: если указано, не менее 2 символов
+  google.protobuf.StringValue name = 2 [
+    (validate.rules).message = {
+      required: true
+    },
+    (validate.rules).string = {
+      min_len: 2,
+      max_len: 50
+    }
+  ];
+
+
+  // Email: если указано, должен быть валидный email
+  google.protobuf.StringValue email = 3 [
+    (validate.rules).message = {
+      required: true
+    },
+    (validate.rules).string = {
+      email: true
+    }
+  ];
 }
 
+// Ответ не нужен — возвращаем пустой
 message UpdateUserResponse {
 }
 
+// Удаление по ID
 message DeleteUserRequest {
-  int64 id = 1;
+  // ID > 0
+  int64 id = 1 [(validate.rules).int64 = {gt: 0}];
 }
 
+// Ответ не нужен — возвращаем пустой
 message DeleteUserResponse {
 }
-
