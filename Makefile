@@ -20,6 +20,7 @@ install-deps:
 	GOBIN=$(LOCAL_BIN) go install github.com/pressly/goose/v3/cmd/goose@latest
 	GOBIN=$(LOCAL_BIN) go install github.com/envoyproxy/protoc-gen-validate@v1.0.4
 	GOBIN=$(LOCAL_BIN) go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.20.0
+	GOBIN=$(LOCAL_BIN) go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.20.0
 
 # Генерация gRPC и Go-кода
 # Генерация gRPC и Go-кода
@@ -37,6 +38,8 @@ generate:
 		--grpc-gateway_out=$(OUT_DIR) --grpc-gateway_opt=paths=source_relative \
 		--validate_out lang=go:pkg/auth_v1 --validate_opt=paths=source_relative \
 		--plugin=protoc-gen-validate=bin/protoc-gen-validate \
+		--openapiv2_out=allow_merge=true,merge_file_name=api:pkg/swagger \
+		--plugin=protoc-gen-openapiv2=bin/protoc-gen-openapiv2 \
 		$(PROTO_FILE)
 
 
@@ -75,8 +78,14 @@ vendor-proto:
 			rm -rf vendor.protogen/protoc-gen-validate ;\
 		fi
 		@if [ ! -d vendor.protogen/google ]; then \
-        			git clone https://github.com/googleapis/googleapis vendor.protogen/googleapis &&\
-        			mkdir -p  vendor.protogen/google/ &&\
-        			mv vendor.protogen/googleapis/google/api vendor.protogen/google &&\
-        			rm -rf vendor.protogen/googleapis ;\
-        		fi
+			git clone https://github.com/googleapis/googleapis vendor.protogen/googleapis &&\
+			mkdir -p  vendor.protogen/google/ &&\
+			mv vendor.protogen/googleapis/google/api vendor.protogen/google &&\
+			rm -rf vendor.protogen/googleapis ;\
+		fi
+		@if [ ! -d vendor.protogen/protoc-gen-openapiv2 ]; then \
+			mkdir -p vendor.protogen/protoc-gen-openapiv2/options &&\
+			git clone https://github.com/grpc-ecosystem/grpc-gateway vendor.protogen/openapiv2 &&\
+			mv vendor.protogen/openapiv2/protoc-gen-openapiv2/options/*.proto vendor.protogen/protoc-gen-openapiv2/options &&\
+			rm -rf vendor.protogen/openapiv2 ;\
+		fi
