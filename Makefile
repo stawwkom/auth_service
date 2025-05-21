@@ -43,6 +43,16 @@ generate:
 		$(PROTO_FILE)
 
 
+gen-cert:
+
+gen-cert:
+	openssl genrsa -out ca.key 4096
+	openssl req -new -x509 -key ca.key -sha256 -subj "/C=US/ST=NJ/O=CA, BinaryCrewInc." -days 365 -out ca.cert
+	openssl genrsa -out service.key 4096
+	openssl req -new -key service.key -out service.csr -config certificate.conf
+	openssl x509 -req -in service.csr -CA ca.cert -CAkey ca.key -CAcreateserial \
+    		-out service.pem -days 365 -sha256 -extfile certificate.conf -extensions req_ext
+
 
 local-migration-status:
 	${LOCAL_BIN}/goose -dir ${LOCAL_MIGRATION_DIR} postgres ${LOCAL_MIGRATION_DSN} status -v

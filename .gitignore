@@ -1,4 +1,14 @@
-.idea
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries
+.idea/shelf
+.idea/modules.xml
+.idea/vcs.xml
 
 bin
 
@@ -19,4 +29,5 @@ go.work.sum
 
 .env
 
-/coverage.out
+coverage.out
+

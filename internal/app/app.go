@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"github.com/stawwkom/auth_service/internal/interceptor"
 	desc "github.com/stawwkom/auth_service/pkg/auth_v1"
-	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/credentials"
 	"log"
 	"net"
 	"net/http"
 
+	"crypto/tls"
 	runtimes "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	api "github.com/stawwkom/auth_service/internal/api/auth"
 	"github.com/stawwkom/auth_service/internal/config"
@@ -18,6 +19,11 @@ import (
 	serv "github.com/stawwkom/auth_service/internal/service/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+)
+
+const (
+	certPath = "../../certs/service.pem"
+	keyPath  = "../../certs/service.key"
 )
 
 type App struct {
@@ -55,7 +61,7 @@ func (a *App) Run(ctx context.Context) error {
 	// Запускаем HTTP сервер в отдельной горутине
 	go func() {
 		log.Printf("HTTP сервер запущен на %s", a.serviceProvider.HTTPAddr())
-		if err := a.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := a.httpServer.ListenAndServeTLS(certPath, keyPath); err != nil && err != http.ErrServerClosed {
 			log.Printf("HTTP сервер остановлен: %v", err)
 		}
 	}()
@@ -110,9 +116,42 @@ func (a *App) initServiceProvider(ctx context.Context) error {
 	return nil
 }
 
+func (a *App) initGRPCServer(_ context.Context) error {
+	creds, err := credentials.NewServerTLSFromFile(certPath, keyPath)
+	if err != nil {
+		return fmt.Errorf("failed to load TLS cert: %v", err)
+	}
+
+	a.grpcServer = grpc.NewServer(
+		grpc.Creds(creds),
+		grpc.UnaryInterceptor(interceptor.ValidateInterceptor),
+	)
+	fmt.Println("Validate running")
+	reflection.Register(a.grpcServer)
+
+	desc.RegisterUserAPIServer(a.grpcServer, api.NewServer(a.serviceProvider.authService))
+
+	return nil
+}
+
 func (a *App) initHTTPServer(ctx context.Context) error {
+	creds, err := credentials.NewClientTLSFromFile(certPath, "")
+	if err != nil {
+		return fmt.Errorf("failed to load TLS cert: %v", err)
+	}
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(creds)}
+
 	mux := runtimes.NewServeMux()
-	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+
+	a.httpServer = &http.Server{
+		Addr:      a.serviceProvider.HTTPAddr(),
+		Handler:   mux,
+		TLSConfig: tlsConfig,
+	}
 
 	if err := desc.RegisterUserAPIHandlerFromEndpoint(
 		ctx, mux, a.serviceProvider.GRPCAddr(), opts,
@@ -124,55 +163,6 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 		Addr:    a.serviceProvider.HTTPAddr(),
 		Handler: mux,
 	}
-
-	return nil
-}
-
-func (a *App) CloseHTTP() {
-	if a.serviceProvider.dbClose != nil {
-		if err := a.serviceProvider.dbClose(); err != nil {
-			log.Printf("Ошибка при закрытии БД: %v", err)
-		}
-	}
-	if a.grpcServer != nil {
-		log.Println("⏹ Остановка gRPC сервера...")
-		a.grpcServer.GracefulStop()
-	}
-	if a.httpServer != nil {
-		log.Println("⏹ Остановка HTTP сервера...")
-		if err := a.httpServer.Shutdown(context.Background()); err != nil {
-			log.Printf("Ошибка при остановке HTTP сервера: %v", err)
-		}
-	}
-}
-
-//func (a *App) initHTTPServer(ctx context.Context) error {
-//	mux := runtime.NewServeMux()
-//
-//	opts := []grpc.DialOption{
-//		grpc.WithTransportCredentials(insecure.NewCredentials()),
-//	}
-//
-//	err := desc.RegisterUserAPIHandlerFromEndpoint(ctx, mux, a.serviceProvider.GRPCAddr(), opts)
-//	if err != nil {
-//		return err
-//	}
-//
-//	a.httpServer = &http.Server{
-//		Addr: a.serviceProvider.HTTPAddr(),
-//		Handler: mux,
-//	}
-//}
-
-func (a *App) initGRPCServer(_ context.Context) error {
-	a.grpcServer = grpc.NewServer(
-		grpc.Creds(insecure.NewCredentials()),
-		grpc.UnaryInterceptor(interceptor.ValidateInterceptor),
-	)
-	fmt.Println("Validate running")
-	reflection.Register(a.grpcServer)
-
-	desc.RegisterUserAPIServer(a.grpcServer, api.NewServer(a.serviceProvider.authService))
 
 	return nil
 }

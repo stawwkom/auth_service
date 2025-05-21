@@ -2,19 +2,29 @@ package main
 
 import (
 	"context"
+	"google.golang.org/grpc/credentials"
 	"log"
 	"time"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	pb "github.com/VictorSidoruk/auth/pkg"
+	pb "github.com/stawwkom/auth_service/pkg/auth_v1"
+)
+
+const (
+	certPath = "../../certs/service.pem"
 )
 
 func main() {
 	// Устанавливаем соединение с gRPC сервером
-	conn, err := grpc.Dial("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+	creds, err := credentials.NewClientTLSFromFile(certPath, "")
+	if err != nil {
+		log.Fatalf("could not process the credentials: %v", err)
+	}
+
+	conn, err := grpc.Dial("localhost:50052", grpc.WithTransportCredentials(creds))
 	if err != nil {
 		log.Fatalf("не удалось подключиться: %v", err)
 	}
