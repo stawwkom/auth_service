@@ -4,12 +4,14 @@ go 1.24.1
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/VictorSidoruk/auth v0.0.0-20250504155824-007a5bb9ae32
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/envoyproxy/protoc-gen-validate v1.2.1
 	github.com/gojuno/minimock/v3 v3.4.5
 	github.com/golang/protobuf v1.5.4
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/joho/godotenv v1.5.1
+	github.com/pkg/errors v0.9.1
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/crypto v0.33.0

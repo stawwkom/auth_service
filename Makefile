@@ -9,7 +9,7 @@ LOCAL_MIGRATION_DSN="host=localhost port=$(PG_PORT) dbname=$(PG_DATABASE_NAME) u
 PROTOC_GEN_GO := $(LOCAL_BIN)/protoc-gen-go
 PROTOC_GEN_GO_GRPC := $(LOCAL_BIN)/protoc-gen-go-grpc
 
-PROTO_DIR := api/auth_gateway
+PROTO_DIR := api/auth_v1
 OUT_DIR := pkg/auth_v1
 PROTO_FILE := $(PROTO_DIR)/auth.proto
 
@@ -42,8 +42,23 @@ generate:
 		--plugin=protoc-gen-openapiv2=bin/protoc-gen-openapiv2 \
 		$(PROTO_FILE)
 
+generate-auth-api:
+	mkdir -p pkg/auth_login
+	protoc --proto_path api/auth_login \
+	--go_out=pkg/auth_login --go_opt=paths=source_relative \
+	--plugin=protoc-gen-go=bin/protoc-gen-go \
+	--go-grpc_out=pkg/auth_login --go-grpc_opt=paths=source_relative \
+	--plugin=protoc-gen-go-grpc=bin/protoc-gen-go-grpc \
+	api/auth_login/auth_login.proto
 
-gen-cert:
+generate-access-api:
+	mkdir -p pkg/access_v1
+	protoc --proto_path api/access_v1 \
+	--go_out=pkg/access_v1 --go_opt=paths=source_relative \
+	--plugin=protoc-gen-go=bin/protoc-gen-go \
+	--go-grpc_out=pkg/access_v1 --go-grpc_opt=paths=source_relative \
+	--plugin=protoc-gen-go-grpc=bin/protoc-gen-go-grpc \
+	api/access_v1/access.proto
 
 gen-cert:
 	openssl genrsa -out ca.key 4096

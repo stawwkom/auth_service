@@ -4,15 +4,17 @@ import (
 	"context"
 	"fmt"
 	"github.com/stawwkom/auth_service/internal/interceptor"
+	descAccess "github.com/stawwkom/auth_service/pkg/access_v1"
+	descAuth "github.com/stawwkom/auth_service/pkg/auth_login"
 	desc "github.com/stawwkom/auth_service/pkg/auth_v1"
 	"google.golang.org/grpc/credentials"
 	"log"
 	"net"
 	"net/http"
+	"os"
 
 	"crypto/tls"
 	runtimes "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	api "github.com/stawwkom/auth_service/internal/api/auth"
 	"github.com/stawwkom/auth_service/internal/config"
 	"github.com/stawwkom/auth_service/internal/repository"
 	repo "github.com/stawwkom/auth_service/internal/repository/auth"
@@ -22,8 +24,8 @@ import (
 )
 
 const (
-	certPath = "../../certs/service.pem"
-	keyPath  = "../../certs/service.key"
+	defaultCertPath = "certs/service.pem"
+	defaultKeyPath  = "certs/service.key"
 )
 
 type App struct {
@@ -40,6 +42,24 @@ func NewApp(ctx context.Context) (*App, error) {
 	}
 
 	return a, nil
+}
+
+func getCertPaths() (string, string) {
+	certPath := os.Getenv("CERT_PATH")
+	keyPath := os.Getenv("KEY_PATH")
+
+	if certPath == "" {
+		// Проверяем, запущено ли приложение из cmd/auth_server
+		if _, err := os.Stat("../../certs/service.pem"); err == nil {
+			certPath = "../../certs/service.pem"
+			keyPath = "../../certs/service.key"
+		} else {
+			certPath = defaultCertPath
+			keyPath = defaultKeyPath
+		}
+	}
+
+	return certPath, keyPath
 }
 
 func (a *App) Run(ctx context.Context) error {
@@ -60,6 +80,7 @@ func (a *App) Run(ctx context.Context) error {
 
 	// Запускаем HTTP сервер в отдельной горутине
 	go func() {
+		certPath, keyPath := getCertPaths()
 		log.Printf("HTTP сервер запущен на %s", a.serviceProvider.HTTPAddr())
 		if err := a.httpServer.ListenAndServeTLS(certPath, keyPath); err != nil && err != http.ErrServerClosed {
 			log.Printf("HTTP сервер остановлен: %v", err)
@@ -116,7 +137,8 @@ func (a *App) initServiceProvider(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) initGRPCServer(_ context.Context) error {
+func (a *App) initGRPCServer(ctx context.Context) error {
+	certPath, keyPath := getCertPaths()
 	creds, err := credentials.NewServerTLSFromFile(certPath, keyPath)
 	if err != nil {
 		return fmt.Errorf("failed to load TLS cert: %v", err)
@@ -128,13 +150,16 @@ func (a *App) initGRPCServer(_ context.Context) error {
 	)
 	fmt.Println("Validate running")
 	reflection.Register(a.grpcServer)
-
-	desc.RegisterUserAPIServer(a.grpcServer, api.NewServer(a.serviceProvider.authService))
+	//desc.RegisterUserAPIServer(a.grpcServer, api.NewServer(a.serviceProvider.authService))
+	desc.RegisterUserAPIServer(a.grpcServer, a.serviceProvider.AuthImpl(ctx))
+	descAccess.RegisterAccessV1Server(a.grpcServer, a.serviceProvider.AccessI(ctx))
+	descAuth.RegisterAuthV1Server(a.grpcServer, a.serviceProvider.AuthI(ctx))
 
 	return nil
 }
 
 func (a *App) initHTTPServer(ctx context.Context) error {
+	certPath, _ := getCertPaths()
 	creds, err := credentials.NewClientTLSFromFile(certPath, "")
 	if err != nil {
 		return fmt.Errorf("failed to load TLS cert: %v", err)

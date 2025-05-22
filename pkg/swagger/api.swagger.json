@@ -1,22 +1,13 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "Auth API",
-    "version": "1.0.0",
-    "contact": {
-      "name": "Stawwkom",
-      "email": "stawwkom@gmail.com"
-    }
+    "title": "auth.proto",
+    "version": "version not set"
   },
   "tags": [
     {
       "name": "UserAPI"
     }
-  ],
-  "host": "localhost:50053",
-  "schemes": [
-    "http",
-    "https"
   ],
   "consumes": [
     "application/json"
@@ -46,6 +37,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "ID \u003e 0",
             "in": "query",
             "required": false,
             "type": "string",
@@ -140,6 +132,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "ID должен быть \u003e 0",
             "in": "path",
             "required": true,
             "type": "string",
@@ -157,21 +150,27 @@
       "type": "object",
       "properties": {
         "name": {
-          "type": "string"
+          "type": "string",
+          "title": "Имя должно быть от 2 до 50 символов"
         },
         "email": {
-          "type": "string"
+          "type": "string",
+          "title": "Email должен быть корректного формата"
         },
         "password": {
-          "type": "string"
+          "type": "string",
+          "title": "Пароль не короче 6 символов"
         },
         "passwordConfirm": {
-          "type": "string"
+          "type": "string",
+          "title": "Подтверждение пароля — такое же правило"
         },
         "role": {
-          "$ref": "#/definitions/authRole"
+          "$ref": "#/definitions/authRole",
+          "title": "Enum должен быть строго из списка (USER или ADMIN)"
         }
-      }
+      },
+      "title": "Создание пользователя с валидацией"
     },
     "authCreateUserResponse": {
       "type": "object",
@@ -180,7 +179,8 @@
           "type": "string",
           "format": "int64"
         }
-      }
+      },
+      "title": "Ответ с ID после создания"
     },
     "authGetUserResponse": {
       "type": "object",
@@ -206,7 +206,8 @@
           "type": "string",
           "format": "date-time"
         }
-      }
+      },
+      "title": "Ответ с полной информацией о пользователе"
     },
     "authRole": {
       "type": "string",
@@ -214,22 +215,27 @@
         "USER",
         "ADMIN"
       ],
-      "default": "USER"
+      "default": "USER",
+      "title": "Роли пользователя"
     },
     "authUpdateUserRequest": {
       "type": "object",
       "properties": {
         "id": {
           "type": "string",
-          "format": "int64"
+          "format": "int64",
+          "title": "ID \u003e 0"
         },
         "name": {
-          "type": "string"
+          "type": "string",
+          "title": "Имя: если указано, не менее 2 символов"
         },
         "email": {
-          "type": "string"
+          "type": "string",
+          "title": "Email: если указано, должен быть валидный email"
         }
-      }
+      },
+      "title": "Обновление пользователя"
     },
     "protobufAny": {
       "type": "object",

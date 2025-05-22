@@ -44,10 +44,12 @@ func Load() error {
 
 	// Настраиваем viper для чтения файла конфигурации с именем среды (например, local.yaml)
 	viper.SetConfigName(env)
-	viper.SetConfigType("yaml")          // по типу конфига и считаного env установливаем конфиг
-	viper.AddConfigPath("../../configs") // Папка, где хранятся конфиги
-
-	viper.AutomaticEnv() // Подключаем автоматическое чтение env
+	viper.SetConfigType("yaml") // по типу конфига и считаного env установливаем конфиг
+	// Добавляем пути к конфигурационным файлам
+	viper.AddConfigPath("configs")       // Относительный путь из корня проекта
+	viper.AddConfigPath("../configs")    // Относительный путь на уровень выше
+	viper.AddConfigPath("../../configs") // Относительный путь на два уровня выше
+	viper.AutomaticEnv()                 // Подключаем автоматическое чтение env
 
 	// Считываем конфиг из файла
 	if err := viper.ReadInConfig(); err != nil {

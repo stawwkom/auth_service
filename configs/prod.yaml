@@ -10,3 +10,4 @@ database:
   password: "auth_password"
   dbname: "auth_db"
   sslmode: "disable"
+l
