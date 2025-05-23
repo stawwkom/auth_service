@@ -1,0 +1,9 @@
+{"L":"INFO","ts":"2025-05-23T12:00:16.574+0300","C":"logger/logger.go:56","M":"🚀 Старт приложения"}
+{"L":"INFO","ts":"2025-05-23T12:00:16.580+0300","C":"logger/logger.go:56","M":"🚀 gRPC сервер запущен","address":"localhost:50051","log_level":"debug"}
+{"L":"INFO","ts":"2025-05-23T12:00:16.580+0300","C":"logger/logger.go:56","M":"🌐 HTTP сервер запущен","address":"localhost:50052"}
+{"L":"INFO","ts":"2025-05-23T12:00:45.446+0300","C":"logger/logger.go:56","M":"gRPC request handled","method":"/auth.UserAPI/Create","client_ip":"127.0.0.1:42784","duration":"74.263369ms","request":"name:\"Ut ut quis\"  email:\"quiur@gmail.com\"  password:\"anim Lorem irure labore\"  password_confirm:\"sit consequat\"  role:ADMIN","response":"id:10"}
+{"L":"WARN","ts":"2025-05-23T12:01:56.292+0300","C":"logger/logger.go:60","M":"⛔️ Сигнал завершения получен"}
+{"L":"INFO","ts":"2025-05-23T12:01:56.292+0300","C":"logger/logger.go:56","M":"⏹ Останавливаем gRPC сервер..."}
+{"L":"WARN","ts":"2025-05-23T12:01:56.293+0300","C":"logger/logger.go:60","M":"⏹ Закрытие приложения..."}
+{"L":"INFO","ts":"2025-05-23T12:01:56.293+0300","C":"logger/logger.go:56","M":"⏹ gRPC остановка..."}
+{"L":"INFO","ts":"2025-05-23T12:01:56.293+0300","C":"logger/logger.go:56","M":"⏹ HTTP остановка..."}

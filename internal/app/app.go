@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/stawwkom/auth_service/internal/interceptor"
+	"github.com/stawwkom/auth_service/internal/logger"
 	descAccess "github.com/stawwkom/auth_service/pkg/access_v1"
 	descAuth "github.com/stawwkom/auth_service/pkg/auth_login"
 	desc "github.com/stawwkom/auth_service/pkg/auth_v1"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/credentials"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -63,8 +64,10 @@ func getCertPaths() (string, string) {
 }
 
 func (a *App) Run(ctx context.Context) error {
-	log.Printf("gRPC сервер запущен на %s (уровень логирования: %s)",
-		a.serviceProvider.GRPCAddr(), config.Cfg.Log)
+	logger.Info("🚀 gRPC сервер запущен",
+		zap.String("address", a.serviceProvider.GRPCAddr()),
+		zap.String("log_level", config.Cfg.Log.Level),
+	)
 
 	listener, err := net.Listen("tcp", a.serviceProvider.GRPCAddr())
 	if err != nil {
@@ -74,16 +77,18 @@ func (a *App) Run(ctx context.Context) error {
 	// Запускаем gRPC сервер в отдельной горутине
 	go func() {
 		if err := a.grpcServer.Serve(listener); err != nil {
-			log.Printf("gRPC сервер остановлен: %v", err)
+			logger.Error("❌ gRPC сервер остановлен", zap.Error(err))
 		}
 	}()
 
 	// Запускаем HTTP сервер в отдельной горутине
 	go func() {
 		certPath, keyPath := getCertPaths()
-		log.Printf("HTTP сервер запущен на %s", a.serviceProvider.HTTPAddr())
+		logger.Info("🌐 HTTP сервер запущен",
+			zap.String("address", a.serviceProvider.HTTPAddr()),
+		)
 		if err := a.httpServer.ListenAndServeTLS(certPath, keyPath); err != nil && err != http.ErrServerClosed {
-			log.Printf("HTTP сервер остановлен: %v", err)
+			logger.Error("❌ HTTP сервер остановлен", zap.Error(err))
 		}
 	}()
 
@@ -91,7 +96,7 @@ func (a *App) Run(ctx context.Context) error {
 	<-ctx.Done()
 
 	// Завершаем gRPC сервер
-	log.Println("⏹ Останавливаем gRPC сервер...")
+	logger.Info("⏹ Останавливаем gRPC сервер...")
 	a.grpcServer.GracefulStop()
 
 	return nil
@@ -146,7 +151,10 @@ func (a *App) initGRPCServer(ctx context.Context) error {
 
 	a.grpcServer = grpc.NewServer(
 		grpc.Creds(creds),
-		grpc.UnaryInterceptor(interceptor.ValidateInterceptor),
+		grpc.ChainUnaryInterceptor(
+			interceptor.LogInterceptor,
+			interceptor.ValidateInterceptor,
+		),
 	)
 	fmt.Println("Validate running")
 	reflection.Register(a.grpcServer)
@@ -193,19 +201,18 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 }
 
 func (a *App) Close() {
-	if a.serviceProvider.dbClose != nil {
-		if err := a.serviceProvider.dbClose(); err != nil {
-			log.Printf("Ошибка при закрытии БД: %v", err)
-		}
+	logger.Warn("⏹ Закрытие приложения...")
+	if err := a.serviceProvider.dbClose(); err != nil {
+		logger.Error("Ошибка при закрытии БД", zap.Error(err))
 	}
 	if a.grpcServer != nil {
-		log.Println("⏹ Остановка gRPC сервера...")
+		logger.Info("⏹ gRPC остановка...")
 		a.grpcServer.GracefulStop()
 	}
 	if a.httpServer != nil {
-		log.Println("⏹ Остановка HTTP сервера...")
+		logger.Info("⏹ HTTP остановка...")
 		if err := a.httpServer.Shutdown(context.Background()); err != nil {
-			log.Printf("Ошибка при остановке HTTP сервера: %v", err)
+			logger.Error("Ошибка при остановке HTTP сервера", zap.Error(err))
 		}
 	}
 }

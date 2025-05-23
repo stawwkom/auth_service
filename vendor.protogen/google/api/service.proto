@@ -25,7 +25,7 @@ import "google/api/control.proto";
 import "google/api/documentation.proto";
 import "google/api/endpoint.proto";
 import "google/api/http.proto";
-import "google/api/log.proto";
+import "google/api/logger.proto";
 import "google/api/logging.proto";
 import "google/api/metric.proto";
 import "google/api/monitored_resource.proto";

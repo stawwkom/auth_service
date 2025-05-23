@@ -27,7 +27,7 @@ vendor.protogen
 go.work
 go.work.sum
 
-.env
+
 
 coverage.out
 
