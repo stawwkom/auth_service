@@ -21,6 +21,7 @@ install-deps:
 	GOBIN=$(LOCAL_BIN) go install github.com/envoyproxy/protoc-gen-validate@v1.0.4
 	GOBIN=$(LOCAL_BIN) go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.20.0
 	GOBIN=$(LOCAL_BIN) go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.20.0
+	GOBIN=$(LOCAL_BIN) go install github.com/bojand/ghz/cmd/ghz@latest
 
 # Генерация gRPC и Go-кода
 # Генерация gRPC и Go-кода
@@ -114,3 +115,31 @@ vendor-proto:
 			mv vendor.protogen/openapiv2/protoc-gen-openapiv2/options/*.proto vendor.protogen/protoc-gen-openapiv2/options &&\
 			rm -rf vendor.protogen/openapiv2 ;\
 		fi
+
+grpc-load-test:
+	./bin/ghz \
+		--proto api/auth_v1/auth.proto \
+		-i api/auth_v1,vendor.protogen,vendor.protogen/google,vendor.protogen/validate \
+		--call auth.UserAPI.Get \
+		--data '{"id": 2}' \
+		--rps 100 \
+		--total 3000 \
+		--cacert certs/ca.cert \
+        --cert certs/service.pem \
+        --key certs/service.key \
+		localhost:50051
+
+grpc-error-load-test:
+	./bin/ghz \
+		--proto api/auth_v1/auth.proto \
+		-i api/auth_v1,vendor.protogen,vendor.protogen/google,vendor.protogen/validate \
+		--call auth.UserAPI.Get \
+		--data '{"id": 0}' \
+		--rps 100 \
+		--total 3000 \
+		--cacert certs/ca.cert \
+        --cert certs/service.pem \
+        --key certs/service.key \
+		localhost:50051
+
+

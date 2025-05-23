@@ -3,13 +3,17 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/stawwkom/auth_service/internal/interceptor"
 	"github.com/stawwkom/auth_service/internal/logger"
+	"github.com/stawwkom/auth_service/internal/metric"
 	descAccess "github.com/stawwkom/auth_service/pkg/access_v1"
 	descAuth "github.com/stawwkom/auth_service/pkg/auth_login"
 	desc "github.com/stawwkom/auth_service/pkg/auth_v1"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/credentials"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -64,40 +68,33 @@ func getCertPaths() (string, string) {
 }
 
 func (a *App) Run(ctx context.Context) error {
-	logger.Info("🚀 gRPC сервер запущен",
-		zap.String("address", a.serviceProvider.GRPCAddr()),
-		zap.String("log_level", config.Cfg.Log.Level),
-	)
+	logger.Info("🚀 gRPC сервер запущен")
 
 	listener, err := net.Listen("tcp", a.serviceProvider.GRPCAddr())
 	if err != nil {
 		return err
 	}
 
-	// Запускаем gRPC сервер в отдельной горутине
-	go func() {
-		if err := a.grpcServer.Serve(listener); err != nil {
-			logger.Error("❌ gRPC сервер остановлен", zap.Error(err))
-		}
-	}()
+	g, ctx := errgroup.WithContext(ctx)
 
-	// Запускаем HTTP сервер в отдельной горутине
-	go func() {
+	g.Go(func() error {
+		return a.grpcServer.Serve(listener)
+	})
+
+	g.Go(func() error {
 		certPath, keyPath := getCertPaths()
-		logger.Info("🌐 HTTP сервер запущен",
-			zap.String("address", a.serviceProvider.HTTPAddr()),
-		)
-		if err := a.httpServer.ListenAndServeTLS(certPath, keyPath); err != nil && err != http.ErrServerClosed {
-			logger.Error("❌ HTTP сервер остановлен", zap.Error(err))
-		}
-	}()
+		return a.httpServer.ListenAndServeTLS(certPath, keyPath)
+	})
 
-	// Ожидаем завершения контекста
-	<-ctx.Done()
+	g.Go(func() error {
+		return runPrometheus(ctx) // передать ctx
+	})
 
-	// Завершаем gRPC сервер
-	logger.Info("⏹ Останавливаем gRPC сервер...")
-	a.grpcServer.GracefulStop()
+	// Ждём завершения или ошибки
+	if err := g.Wait(); err != nil {
+		logger.Error("⛔ Ошибка в одной из горутин", zap.Error(err))
+		return err
+	}
 
 	return nil
 }
@@ -108,6 +105,7 @@ func (a *App) initDeps(ctx context.Context) error {
 		a.initServiceProvider,
 		a.initGRPCServer,
 		a.initHTTPServer,
+		a.initMetrics,
 	}
 
 	for _, step := range steps {
@@ -152,6 +150,7 @@ func (a *App) initGRPCServer(ctx context.Context) error {
 	a.grpcServer = grpc.NewServer(
 		grpc.Creds(creds),
 		grpc.ChainUnaryInterceptor(
+			interceptor.MetricsInterceptor,
 			interceptor.LogInterceptor,
 			interceptor.ValidateInterceptor,
 		),
@@ -164,6 +163,10 @@ func (a *App) initGRPCServer(ctx context.Context) error {
 	descAuth.RegisterAuthV1Server(a.grpcServer, a.serviceProvider.AuthI(ctx))
 
 	return nil
+}
+
+func (a *App) initMetrics(ctx context.Context) error {
+	return metric.Init(ctx)
 }
 
 func (a *App) initHTTPServer(ctx context.Context) error {
@@ -215,4 +218,22 @@ func (a *App) Close() {
 			logger.Error("Ошибка при остановке HTTP сервера", zap.Error(err))
 		}
 	}
+}
+
+func runPrometheus(ctx context.Context) error {
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+
+	server := &http.Server{
+		Addr:    "0.0.0.0:2112",
+		Handler: mux,
+	}
+
+	go func() {
+		<-ctx.Done()
+		_ = server.Shutdown(context.Background())
+	}()
+
+	log.Println("Prometheus server is running on 0.0.0.0:2112")
+	return server.ListenAndServe()
 }

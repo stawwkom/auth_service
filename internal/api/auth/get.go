@@ -9,6 +9,9 @@ import (
 )
 
 func (s *Server) Get(ctx context.Context, req *desc.GetUserRequest) (*desc.GetUserResponse, error) {
+	if req.GetId() == 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "id is empty")
+	}
 	userInfo, err := s.authService.GetUser(ctx, req.GetId())
 	if err != nil {
 		return nil, err
